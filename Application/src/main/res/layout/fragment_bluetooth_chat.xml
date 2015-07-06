@@ -29,31 +29,21 @@
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="300px"
         android:orientation="horizontal" >
 
-        <EditText
-            android:id="@+id/edit_text_out"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="bottom"
-            android:layout_weight="1" />
-
         <Button
-            android:id="@+id/button_send"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/send" />
+            android:id="@+id/button_left_click"
+            android:layout_width="match_parent"
+            android:layout_weight="0.5"
+            android:layout_height="300px"
+            android:text="Left Click" />
         <Button
-            android:id="@+id/button_send_acc_on"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Acc On" />
-        <Button
-            android:id="@+id/button_send_acc_off"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Acc Off" />
+            android:id="@+id/button_right_click"
+            android:layout_width="match_parent"
+            android:layout_weight="0.5"
+            android:layout_height="300px"
+            android:text="Right Click" />
     </LinearLayout>
 
 </LinearLayout>

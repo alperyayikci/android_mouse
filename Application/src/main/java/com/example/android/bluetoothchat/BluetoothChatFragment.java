@@ -37,6 +37,7 @@ import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
@@ -58,9 +59,15 @@ public class BluetoothChatFragment extends Fragment implements SensorEventListen
 
     //MY BOOL
     private static boolean buttonPressed = false;
+    private static boolean xFlag = false, yFlag = false;
     private static double xV = 0;
     private static double yV = 0;
     private static long timestamp = 0;
+    private static double[] lastX;
+    private static double[] lastY;
+    private static double timeout=0;
+
+
 
     // Intent request codes
     private static final int REQUEST_CONNECT_DEVICE_SECURE = 1;
@@ -70,10 +77,8 @@ public class BluetoothChatFragment extends Fragment implements SensorEventListen
 
     // Layout Views
     private ListView mConversationView;
-    private EditText mOutEditText;
-    private Button mSendButton;
-    private Button mAccOnButton;
-    private Button mAccOffButton;
+    private Button mLeftClickButton;
+    private Button mRightClickButton;
 
     /**
      * Name of the connected device
@@ -121,7 +126,7 @@ public class BluetoothChatFragment extends Fragment implements SensorEventListen
         sensorManager=(SensorManager) getActivity().getSystemService(Context.SENSOR_SERVICE);
         // add listener. The listener will be HelloAndroid (this) class
         sensorManager.registerListener(this,
-                sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION),
+                sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY),
                 SensorManager.SENSOR_DELAY_GAME);
 
 		/*	More sensor speeds (taken from api docs)
@@ -129,6 +134,9 @@ public class BluetoothChatFragment extends Fragment implements SensorEventListen
 		    SENSOR_DELAY_GAME	rate suitable for games
 		 	SENSOR_DELAY_NORMAL	rate (default) suitable for screen orientation changes
 		*/
+
+        lastX = new double[5];
+        lastY = new double[5];
     }
     public void onAccuracyChanged(Sensor sensor,int accuracy){
 
@@ -137,13 +145,12 @@ public class BluetoothChatFragment extends Fragment implements SensorEventListen
     public void onSensorChanged(SensorEvent event){
 
         // check sensor type
-        if(event.sensor.getType()==Sensor.TYPE_LINEAR_ACCELERATION){
-
+        if(event.sensor.getType()==Sensor.TYPE_GRAVITY){
+            /*
             // assign directions
-
             if(timestamp == 0){
                 timestamp = event.timestamp;
-            }else{
+            }else {
                 double dt =  event.timestamp - timestamp;
                 dt *= 1e-9;
                 //Log.d(TAG, "dt: " + dt);
@@ -153,6 +160,24 @@ public class BluetoothChatFragment extends Fragment implements SensorEventListen
                 double xAcc= event.values[0];
                 double yAcc= -event.values[1];
                 //Filter
+                for(int i=1; i <= 4; i++) {
+                    lastX[i-1] = lastX[i];
+                    lastY[i-1] = lastY[i];
+                }
+
+                if(Math.abs(xAcc) < 1 && Math.abs(yAcc) < 1) {
+                    timeout += dt;
+                }
+                else if(xFlag && yFlag){
+                    timeout = 5;
+                }
+                else timeout = 0;
+
+                if(event.values[2] > 1) {
+                    timeout = 5;
+
+                }
+
                 if(xAcc < 1 && xAcc > 0 && xV > 0){
                     xAcc = 0;
                 }
@@ -165,25 +190,70 @@ public class BluetoothChatFragment extends Fragment implements SensorEventListen
                 if(yAcc > -1 && yAcc < 0 && yV < 0){
                     yAcc = 0;
                 }
+                if(timeout > 0.25) {
+                    xV = 0;
+                    yV = 0;
+                    xAcc = 0;
+                    yAcc = 0;
+                    xFlag = yFlag = false;
+                }
+
+
                 //Log.d(TAG, "XAcc: " + xAcc + "YAcc:  " + yAcc);
+                lastX[4] = xAcc;
+                lastY[4] = yAcc;
+
+                xAcc = 0;
+                yAcc = 0;
+
+                for(int i=0; i < 5; i++) {
+                    xAcc += lastX[i] / 5;
+                    yAcc += lastY[i] / 5;
+                }
+
+                if(xAcc < 0 && xV > 0){
+                    xFlag = true;
+                }
+                if(xAcc > 0 && xV < 0){
+                    xFlag = true;
+                }
+                if(yAcc < 0 && yV > 0){
+                    yFlag = true;
+                }
+                if(yAcc > 0 && yV < 0){
+                    yFlag = true;
+                }
+
+
 
 
                 double dX = (0.5*xAcc*dt*dt + xV * dt)*4000;
                 double dY = (0.5*yAcc*dt*dt + yV * dt)*4000;
                 Log.d(TAG, "dX: " + dX + "dY:  " + dY);
+
+
+
+
+
                 xV += (xAcc*dt);
                 yV += (yAcc*dt);
 
+            }
+
                 //Log.d(TAG, "XV: " + xV + "YV:  " + yV);
 
-
-                // float z=event.values[2];
-                if(buttonPressed == true) {
-                    Log.d(TAG, "X: " + dX + "Y:  " + dY);
-                    sendMessage((int) dX + " " + (int) dY);
-                }
-                //  zCoor.setText("Z: "+z);
+*/
+            double dX= -event.values[0]*5;
+            double dY= event.values[1]*5;
+            //double dZ= -event.values[2];
+            if(buttonPressed == true) {
+                //Log.d(TAG, "X: " + dX + " Y:  " + dY);
+                //Log.d(TAG, "XV: " + xV + " YV:  " + yV);
+                //Log.d(TAG, "XAcc: " + xAcc + " YAcc:  " + yAcc);
+                sendMessage("M "+(int) dX + " " + (int) dY);
             }
+            //  zCoor.setText("Z: "+z);
+
         }
     }
 
@@ -234,10 +304,8 @@ public class BluetoothChatFragment extends Fragment implements SensorEventListen
     @Override
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         mConversationView = (ListView) view.findViewById(R.id.in);
-        mOutEditText = (EditText) view.findViewById(R.id.edit_text_out);
-        mSendButton = (Button) view.findViewById(R.id.button_send);
-        mAccOnButton = (Button) view.findViewById(R.id.button_send_acc_on);
-        mAccOffButton = (Button) view.findViewById(R.id.button_send_acc_off);
+        mLeftClickButton = (Button) view.findViewById(R.id.button_left_click);
+        mRightClickButton = (Button) view.findViewById(R.id.button_right_click);
     }
 
     /**
@@ -250,41 +318,40 @@ public class BluetoothChatFragment extends Fragment implements SensorEventListen
         mConversationArrayAdapter = new ArrayAdapter<String>(getActivity(), R.layout.message);
 
         mConversationView.setAdapter(mConversationArrayAdapter);
-
-        // Initialize the compose field with a listener for the return key
-        mOutEditText.setOnEditorActionListener(mWriteListener);
-
-        // Initialize the send button with a listener that for click events
-        mSendButton.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                // Send a message using content of the edit text widget
-                View view = getView();
-                if (null != view) {
-                    TextView textView = (TextView) view.findViewById(R.id.edit_text_out);
-                    String message = textView.getText().toString();
-                    sendMessage(message);
+        mLeftClickButton.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                switch(event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        // PRESSED
+                        Log.d(TAG, "L pressed");
+                        sendMessage("B 0 0");
+                        return true; // if you want to handle the touch event
+                    case MotionEvent.ACTION_UP:
+                        // RELEASED
+                        Log.d(TAG, "L released");
+                        sendMessage("B 0 1");
+                        return true; // if you want to handle the touch event
                 }
+                return false;
             }
         });
-
-        // Initialize the send button with a listener that for accelerometer events
-        mAccOnButton.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                // Send a message using content of the edit text widget
-                View view = getView();
-                if (null != view) {
-                    buttonPressed = true;
+        mRightClickButton.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        // PRESSED
+                        Log.d(TAG, "R pressed");
+                        sendMessage("B 1 0");
+                        return true; // if you want to handle the touch event
+                    case MotionEvent.ACTION_UP:
+                        // RELEASED
+                        Log.d(TAG, "R released");
+                        sendMessage("B 1 1");
+                        return true; // if you want to handle the touch event
                 }
-            }
-        });
-        // Initialize the send button with a listener that for accelerometer events
-        mAccOffButton.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                // Send a message using content of the edit text widget
-                View view = getView();
-                if (null != view) {
-                    buttonPressed = false;
-                }
+                return false;
             }
         });
 
@@ -325,9 +392,8 @@ public class BluetoothChatFragment extends Fragment implements SensorEventListen
             byte[] send = message.getBytes();
             mChatService.write(send);
 
-            // Reset out string buffer to zero and clear the edit text field
+            // Reset out string buffer to zero.
             mOutStringBuffer.setLength(0);
-            mOutEditText.setText(mOutStringBuffer);
         }
     }
 
@@ -496,6 +562,12 @@ public class BluetoothChatFragment extends Fragment implements SensorEventListen
                 // Launch the DeviceListActivity to see devices and do scan
                 Intent serverIntent = new Intent(getActivity(), DeviceListActivity.class);
                 startActivityForResult(serverIntent, REQUEST_CONNECT_DEVICE_INSECURE);
+                return true;
+            }
+            case R.id.connect_mouse: {
+                // Ensure this device is discoverable by others
+                if(buttonPressed == false) buttonPressed = true;
+                else buttonPressed = false;
                 return true;
             }
             case R.id.discoverable: {
